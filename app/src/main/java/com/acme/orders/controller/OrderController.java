@@ -53,10 +53,6 @@ public class OrderController {
         return response;
     }
 
-    /**
-     * Get order details including all line items.
-     * This endpoint performs a lookup by order_number on both orders and order_items tables.
-     */
     @GetMapping("/number/{orderNumber}/details")
     public ResponseEntity<Order> getOrderDetailsByNumber(@PathVariable String orderNumber) {
         long startTime = System.currentTimeMillis();
@@ -66,7 +62,7 @@ public class OrderController {
         long duration = System.currentTimeMillis() - startTime;
         
         if (duration > 100) {
-            logger.warn("GET /api/orders/number/{}/details completed in {}ms (SLOW)", orderNumber, duration);
+            logger.warn("GET /api/orders/number/{}/details completed in {}ms", orderNumber, duration);
         } else {
             logger.info("GET /api/orders/number/{}/details completed in {}ms", orderNumber, duration);
         }
@@ -124,5 +120,16 @@ public class OrderController {
     @GetMapping("/count")
     public ResponseEntity<Long> getOrderCount() {
         return ResponseEntity.ok(orderService.getOrderCount());
+    }
+
+    @GetMapping("/recent")
+    public ResponseEntity<List<Order>> getRecentOrders(
+            @RequestParam(defaultValue = "50") int limit) {
+        long startTime = System.currentTimeMillis();
+        List<Order> orders = orderService.getRecentOrdersWithItems(Math.min(limit, 200));
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info("GET /api/orders/recent?limit={} completed in {}ms, returned {} orders", 
+                    limit, duration, orders.size());
+        return ResponseEntity.ok(orders);
     }
 }

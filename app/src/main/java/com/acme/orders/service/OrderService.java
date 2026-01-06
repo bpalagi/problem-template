@@ -1,6 +1,7 @@
 package com.acme.orders.service;
 
 import com.acme.orders.model.Order;
+import com.acme.orders.model.OrderItem;
 import com.acme.orders.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
@@ -56,5 +57,16 @@ public class OrderService implements IOrderService {
 
     public long getOrderCount() {
         return orderRepository.count();
+    }
+
+    public List<Order> getRecentOrdersWithItems(int limit) {
+        List<Order> orders = orderRepository.findRecentOrders(limit);
+        
+        for (Order order : orders) {
+            List<OrderItem> items = orderRepository.findItemsByOrderNumber(order.getOrderNumber());
+            order.setItems(items);
+        }
+        
+        return orders;
     }
 }

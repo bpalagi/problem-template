@@ -4,12 +4,8 @@ import com.acme.orders.model.Order;
 import com.acme.orders.model.OrderItem;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -87,12 +83,7 @@ public class OrderRepository {
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
-    /**
-     * Finds an order with all its items by order number.
-     * NOTE: This performs a lookup on order_number which has no index - will be slow!
-     */
     public Optional<Order> findOrderWithItemsByOrderNumber(String orderNumber) {
-        // First get the order
         Optional<Order> orderOpt = findByOrderNumber(orderNumber);
         if (orderOpt.isEmpty()) {
             return Optional.empty();
@@ -100,7 +91,6 @@ public class OrderRepository {
         
         Order order = orderOpt.get();
         
-        // Then get all items for this order (full table scan on order_items!)
         List<OrderItem> items = jdbcTemplate.query(
             "SELECT * FROM order_items WHERE order_number = ?",
             orderItemRowMapper,
@@ -120,34 +110,25 @@ public class OrderRepository {
     }
 
     private Order insert(Order order) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
         LocalDateTime now = LocalDateTime.now();
         
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO orders (order_number, customer_name, customer_email, status, amount, shipping_address, order_metadata, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                Statement.RETURN_GENERATED_KEYS
-            );
-            ps.setString(1, order.getOrderNumber());
-            ps.setString(2, order.getCustomerName());
-            ps.setString(3, order.getCustomerEmail());
-            ps.setString(4, order.getStatus());
-            ps.setBigDecimal(5, order.getAmount());
-            ps.setString(6, order.getShippingAddress());
-            ps.setString(7, order.getOrderMetadata());
-            ps.setTimestamp(8, Timestamp.valueOf(now));
-            ps.setTimestamp(9, Timestamp.valueOf(now));
-            return ps;
-        }, keyHolder);
+        jdbcTemplate.update(
+            "INSERT INTO orders (order_number, customer_name, customer_email, status, amount, shipping_address, order_metadata, created_at, updated_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            order.getOrderNumber(),
+            order.getCustomerName(),
+            order.getCustomerEmail(),
+            order.getStatus(),
+            order.getAmount(),
+            order.getShippingAddress(),
+            order.getOrderMetadata(),
+            Timestamp.valueOf(now),
+            Timestamp.valueOf(now)
+        );
 
-        // Handle both SQLite (returns Number directly) and PostgreSQL (returns map with 'id' key)
-        Number key = keyHolder.getKey();
-        if (key != null) {
-            order.setId(key.longValue());
-        } else if (keyHolder.getKeys() != null && keyHolder.getKeys().containsKey("id")) {
-            order.setId(((Number) keyHolder.getKeys().get("id")).longValue());
-        }
+        // Get the last inserted ID for SQLite
+        Long id = jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
+        order.setId(id);
         order.setCreatedAt(now);
         order.setUpdatedAt(now);
         return order;
@@ -167,10 +148,6 @@ public class OrderRepository {
         return order;
     }
 
-    /**
-     * Updates an order by order_number.
-     * NOTE: This query performs a full table scan because there is no index on order_number.
-     */
     public int updateByOrderNumber(String orderNumber, Order order) {
         LocalDateTime now = LocalDateTime.now();
         return jdbcTemplate.update(
@@ -190,5 +167,21 @@ public class OrderRepository {
     public long count() {
         Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Long.class);
         return count != null ? count : 0;
+    }
+
+    public List<Order> findRecentOrders(int limit) {
+        return jdbcTemplate.query(
+            "SELECT * FROM orders ORDER BY created_at DESC LIMIT ?",
+            orderRowMapper,
+            limit
+        );
+    }
+
+    public List<OrderItem> findItemsByOrderNumber(String orderNumber) {
+        return jdbcTemplate.query(
+            "SELECT * FROM order_items WHERE order_number = ?",
+            orderItemRowMapper,
+            orderNumber
+        );
     }
 }

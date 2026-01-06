@@ -8,24 +8,22 @@
 
 ## Description
 
-Multiple enterprise customers have reported slow response times in the application over the past week. The Customer Success team has escalated this as it's affecting our largest accounts.
+Multiple enterprise customers have reported slow response times when loading the Recent Orders dashboard. The Customer Success team has escalated this as it's affecting our largest accounts.
 
 From the support tickets:
-> "The app has been really sluggish lately dealing with orders. Sometimes it takes seconds to load." — Foo Corp
 
-> "Performance has degraded significantly since last month. Please investigate ASAP." — GlobalTrade Ltd
+> "The recent orders page takes forever to load. It used to be instant." — Foo Corp
+
+> "Dashboard performance has degraded significantly. Sometimes it takes 3-4 seconds to show our orders." — GlobalTrade Ltd
+
+> "We're seeing timeouts on the orders API when fetching recent orders. This is impacting our operations team." — MegaRetail Inc
 
 ## Acceptance Criteria
 
 - [ ] Identify which endpoint(s) are experiencing performance issues
 - [ ] Determine root cause of the slowdown
-- [ ] Implement a fix that brings response times to acceptable levels (<100ms p95)
+- [ ] Implement a fix that brings response times to acceptable levels (<100ms)
 - [ ] Ensure existing tests continue to pass
-
-## Technical Context
-
-- Application uses SQLite database
-- Database has ~50,000 orders with line items
 
 ## Getting Started
 

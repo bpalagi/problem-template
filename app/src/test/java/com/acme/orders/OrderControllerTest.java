@@ -2,6 +2,7 @@ package com.acme.orders;
 
 import com.acme.orders.controller.OrderController;
 import com.acme.orders.model.Order;
+import com.acme.orders.model.OrderItem;
 import com.acme.orders.service.IOrderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,11 +12,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.acme.orders.model.OrderItem;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -178,5 +177,31 @@ class OrderControllerTest {
 
         mockMvc.perform(get("/api/orders/number/ORD-99999999/details"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getRecentOrders_ReturnsOrdersWithItems() throws Exception {
+        Order order = new Order("ORD-TEST-001", "Test Customer", "PENDING", new BigDecimal("99.99"));
+        order.setId(1L);
+        order.setItems(Arrays.asList());
+        
+        when(orderService.getRecentOrdersWithItems(50)).thenReturn(Arrays.asList(order));
+        
+        mockMvc.perform(get("/api/orders/recent"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].orderNumber").value("ORD-TEST-001"));
+    }
+
+    @Test
+    void getRecentOrders_WithCustomLimit() throws Exception {
+        Order order = new Order("ORD-TEST-001", "Test Customer", "PENDING", new BigDecimal("99.99"));
+        order.setId(1L);
+        order.setItems(Arrays.asList());
+        
+        when(orderService.getRecentOrdersWithItems(10)).thenReturn(Arrays.asList(order));
+        
+        mockMvc.perform(get("/api/orders/recent?limit=10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].orderNumber").value("ORD-TEST-001"));
     }
 }

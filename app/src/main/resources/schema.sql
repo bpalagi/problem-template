@@ -1,6 +1,4 @@
 -- Orders table schema
--- NOTE: No index on order_number column - this will cause slow lookups!
-
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_number TEXT NOT NULL,
@@ -14,8 +12,7 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Order items table - linked by order_number
--- NOTE: No index on order_number here either - JOINs will be slow!
+-- Order items table
 CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_number TEXT NOT NULL,
@@ -26,6 +23,4 @@ CREATE TABLE IF NOT EXISTS order_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index on id is automatic (PRIMARY KEY)
--- INTENTIONALLY NOT ADDING: CREATE INDEX idx_orders_order_number ON orders(order_number);
--- INTENTIONALLY NOT ADDING: CREATE INDEX idx_order_items_order_number ON order_items(order_number);
+

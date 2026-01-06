@@ -15,4 +15,5 @@ public interface IOrderService {
     boolean updateOrderByOrderNumber(String orderNumber, Order orderDetails);
     void deleteOrder(Long id);
     long getOrderCount();
+    List<Order> getRecentOrdersWithItems(int limit);
 }
