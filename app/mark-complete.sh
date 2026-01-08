@@ -2,14 +2,12 @@
 # Mark the current problem as complete on LLMeetCode
 #
 # This script calls the LLMeetCode API to mark the problem as completed.
-# It uses environment variables that were injected as repo secrets when
-# the codespace was created.
+# It reads configuration from the .llmeetcode-config file that was created
+# when the codespace repository was generated.
 #
-# Required environment variables (injected automatically):
+# The config file contains:
 #   LLMEETCODE_TOKEN      - Authentication token for the API
 #   LLMEETCODE_API_URL    - Base URL of the LLMeetCode API
-#
-# Optional:
 #   LLMEETCODE_PROBLEM_ID - Problem ID (for display purposes)
 
 set -e
@@ -19,17 +17,54 @@ echo "  LLMeetCode - Mark Problem Complete"
 echo "========================================"
 echo ""
 
-# Check for required environment variables
+# Find the config file - check repo root first, then current directory
+CONFIG_FILE=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+if [ -f "$REPO_ROOT/.llmeetcode-config" ]; then
+    CONFIG_FILE="$REPO_ROOT/.llmeetcode-config"
+elif [ -f ".llmeetcode-config" ]; then
+    CONFIG_FILE=".llmeetcode-config"
+elif [ -f "$HOME/workspace/.llmeetcode-config" ]; then
+    # Fallback for codespaces where repo might be in /workspaces
+    CONFIG_FILE="$HOME/workspace/.llmeetcode-config"
+fi
+
+# Load config from file if found (allows env vars to override)
+if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
+    echo "Loading configuration from $CONFIG_FILE"
+    echo ""
+    # Source the config file to set variables (only if not already set)
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+        # Remove leading/trailing whitespace
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        # Only set if not already defined in environment
+        if [ -z "${!key}" ]; then
+            export "$key=$value"
+        fi
+    done < "$CONFIG_FILE"
+fi
+
+# Check for required variables
 if [ -z "$LLMEETCODE_TOKEN" ]; then
-    echo "ERROR: LLMEETCODE_TOKEN environment variable is not set."
+    echo "ERROR: LLMEETCODE_TOKEN is not set."
     echo ""
     echo "This script should be run from within a LLMeetCode codespace."
-    echo "The token is automatically injected when the codespace is created."
+    echo "The .llmeetcode-config file should be in the repository root."
+    echo ""
+    echo "Looked for config file in:"
+    echo "  - $REPO_ROOT/.llmeetcode-config"
+    echo "  - ./.llmeetcode-config"
     exit 1
 fi
 
 if [ -z "$LLMEETCODE_API_URL" ]; then
-    echo "ERROR: LLMEETCODE_API_URL environment variable is not set."
+    echo "ERROR: LLMEETCODE_API_URL is not set."
     echo ""
     echo "This script should be run from within a LLMeetCode codespace."
     exit 1
